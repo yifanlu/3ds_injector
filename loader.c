@@ -34,7 +34,7 @@ static int allocate_shared_mem(prog_addrs_t *shared, prog_addrs_t *vaddr, int fl
 
 static int load_code(prog_addrs_t *shared, u64 prog_handle, int is_compressed)
 {
-  
+
 }
 
 static int loader_LoadProcess(Handle &process, u64 prog_handle)
@@ -116,7 +116,53 @@ static int loader_LoadProcess(Handle &process, u64 prog_handle)
 
 static int loader_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS_ProgramInfo *update)
 {
+  u64 prog_id;
+  int res;
 
+  prog_id = title->programId;
+  if (prog_id >> 32 != 0xFFFF0000)
+  {
+    res = FSREG_CheckHostLoadId(prog_handle, prog_id);
+    // todo: simplify this wonky logic
+    // I think it's R_LEVEL(res) == RL_INFO || R_LEVEL(res) != RL_FATAL
+    if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
+    {
+      res = PXIPM_RegisterProgram(prog_handle, title, update);
+      if (res < 0)
+      {
+        return res;
+      }
+      if (*prog_handle >> 32 != 0xFFFF0000)
+      {
+        res = FSREG_CheckHostLoadId(0, *prog_handle);
+        if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
+        {
+          return 0;
+        }
+      }
+      svcBreak(USERBREAK_ASSERT);
+    }
+  }
+
+  if ((title->mediaType != update->mediaType) || (title->programId != update->programId))
+  {
+    svcBreak(USERBREAK_ASSERT);
+  }
+  res = FSREG_LoadProgram(prog_handle, title);
+  if (res < 0)
+  {
+    if (*prog_handle >> 32 == 0xFFFF0000)
+    {
+      return 0;
+    }
+    res = FSREG_CheckHostLoadId(0, *prog_handle);
+    if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
+    {
+      return 0;
+    }
+    svcBreak(USERBREAK_ASSERT);
+  }
+  return res;
 }
 
 static int loader_GetProgramInfo(exheader_header *exheader, u64 prog_handle)
