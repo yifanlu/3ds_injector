@@ -189,8 +189,24 @@ static int loader_GetProgramInfo(exheader_header *exheader, u64 prog_handle)
 
 static int loader_UnregisterProgram(u64 prog_handle)
 {
-  
+  int res;
 
+  if (prog_handle >> 32 == 0xFFFF0000)
+  {
+    return FSREG_UnloadProgram(prog_handle);
+  }
+  else
+  {
+    res = FSREG_CheckHostLoadId(0, prog_handle);
+    if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
+    {
+      return PXIPM_UnregisterProgram(prog_handle);
+    }
+    else
+    {
+      return FSREG_UnloadProgram(prog_handle);
+    }
+  }
 }
 
 static void handle_commands(void)
