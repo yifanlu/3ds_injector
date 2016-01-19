@@ -4,6 +4,8 @@
 
 #define MAX_SESSIONS 1
 
+const char CODE_PATH[] = {0x01, 0x00, 0x00, 0x00, 0x2E, 0x63, 0x6F, 0x64, 0x65, 0x00, 0x00, 0x00};
+
 typedef struct
 {
   u32 text_addr;
@@ -34,7 +36,57 @@ static int allocate_shared_mem(prog_addrs_t *shared, prog_addrs_t *vaddr, int fl
 
 static int load_code(prog_addrs_t *shared, u64 prog_handle, int is_compressed)
 {
+  IFile file;
+  FS_Archive archive;
+  FS_Path path;
+  Result res;
+  u32 size;
+  u64 total;
 
+  archive.id = ARCHIVE_SAVEDATA_AND_CONTENT2;
+  archive.lowPath.type = PATH_BINARY;
+  archive.lowPath.data = &prog_handle;
+  archive.lowPath.size = 8;
+  //archive.handle = prog_handle; // not needed
+  path.type = PATH_BINARY;
+  path.data = CODE_PATH;
+  path.size = sizeof(CODE_PATH);
+  res = IFile_Open(&file, archive, path, FS_OPEN_READ);
+  if (R_FAILED(res))
+  {
+    svcBreak(USERBREAK_ASSERT);
+  }
+
+  // get file size
+  res = IFile_GetSize(&file, &size);
+  if (R_FAILED(res))
+  {
+    IFile_Close(&file);
+    svcBreak(USERBREAK_ASSERT);
+  }
+
+  // check size
+  if (size > (u64)shared->total_size << 12)
+  {
+    IFile_Close(&file);
+    return 0xC900464F;
+  }
+
+  // read code
+  res = IFile_Read(&file, &total, shared->text_addr, size);
+  IFile_Close(&file); // done reading
+  if (R_FAILED(res))
+  {
+    svcBreak(USERBREAK_ASSERT);
+  }
+
+  // decompress
+  if (is_compressed)
+  {
+    lzss_decompress(shared->text_addr + size);
+  }
+
+  return 0;
 }
 
 static int loader_LoadProcess(Handle &process, u64 prog_handle)
@@ -296,7 +348,7 @@ int main(int argc, const char *argv[])
   srv_handle = &g_handles[1];
   notification_handle = &g_handles[0];
 
-  if (R_FAILED(srvRegisterService(srv_handle, "Loader", 1)))
+  if (R_FAILED(srvRegisterService(srv_handle, "Loader", MAX_SESSIONS)))
   {
     svcBreak(USERBREAK_ASSERT);
   }
