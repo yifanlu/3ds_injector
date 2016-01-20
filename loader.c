@@ -165,6 +165,7 @@ static int loader_LoadProcess(Handle &process, u64 prog_handle)
   int count;
   u32 flags;
   u32 desc;
+  u32 dummy;
   prog_addrs_t shared_addr;
   prog_addrs_t vaddr;
 
@@ -233,6 +234,7 @@ static int loader_LoadProcess(Handle &process, u64 prog_handle)
     }
   }
 
+  svcControlMemory(&dummy, shared_addr->text_addr, 0, shared_addr->total_size << 12, MEMOP_FREE, 0);
   return res;
 }
 
