@@ -23,6 +23,76 @@ static u64 g_cached_prog_handle;
 static exheader_header g_exheader;
 static char g_ret_buf[1024];
 
+static int lzss_decompress(u8 *end)
+{
+  unsigned int v1; // r1@2
+  u8 *v2; // r2@2
+  u8 *v3; // r3@2
+  u8 *v4; // r1@2
+  char v5; // r5@4
+  char v6; // t1@4
+  signed int v7; // r6@4
+  int v9; // t1@7
+  int v10; // r8@7
+  u8 *v11; // r3@8
+  int v12; // r12@8
+  int v13; // t1@8
+  int v14; // t1@8
+  unsigned int v15; // r7@8
+  int v16; // r12@8
+  int v17; // r8@9
+  int ret;
+
+  ret = 0;
+  if ( end )
+  {
+    v1 = *((u32 *)end - 2);
+    v2 = &end[*((u32 *)end - 1)];
+    v3 = &end[-(v1 >> 24)];
+    v4 = &end[-(v1 & 0xFFFFFF)];
+    while ( v3 > v4 )
+    {
+      v6 = *(v3-- - 1);
+      v5 = v6;
+      v7 = 8;
+      while ( 1 )
+      {
+        if ( (v7-- < 1) )
+          break;
+        if ( v5 & 0x80 )
+        {
+          v13 = *(v3 - 1);
+          v11 = v3 - 1;
+          v12 = v13;
+          v14 = *(v11 - 1);
+          v3 = v11 - 1;
+          v15 = ((v14 | (v12 << 8)) & 0xFFFF0FFF) + 2;
+          v16 = v12 + 32;
+          do
+          {
+            ret = v2[v15];
+            v17 = *(v2 - 1);
+            *(v2-- - 1) = ret;
+            v16 -= 16;
+          }
+          while ( !(v16 < 0) );
+        }
+        else
+        {
+          v9 = *(v3-- - 1);
+          ret = v9;
+          v10 = *(v2 - 1);
+          *(v2-- - 1) = v9;
+        }
+        v5 *= 2;
+        if ( v3 <= v4 )
+          return ret;
+      }
+    }
+  }
+  return ret;
+}
+
 static int allocate_shared_mem(prog_addrs_t *shared, prog_addrs_t *vaddr, int flags)
 {
   u32 dummy;
