@@ -402,6 +402,23 @@ static void handle_commands(void)
   }
 }
 
+static Result should_terminate(int &term_request)
+{
+  u32 notid;
+  Result ret;
+
+  ret = srvReceiveNotification(&notid);
+  if (R_FAILED(ret))
+  {
+    return ret;
+  }
+  if (notid == 0x100) // term request
+  {
+    *term_request = 1;
+  }
+  return 0;
+}
+
 int main(int argc, const char *argv[])
 {
   Result ret;
@@ -410,6 +427,8 @@ int main(int argc, const char *argv[])
   Handle *notification_handle;
   s32 index;
   int i;
+  int term_request;
+  u32* cmdbuf;
 
   ret = 0;
   srvInit();
@@ -435,8 +454,14 @@ int main(int argc, const char *argv[])
   index = 1;
 
   reply_target = 0;
+  term_request = 0;
   do
   {
+    if (reply_target == 0)
+    {
+      cmdbuf = getThreadCommandBuffer();
+      cmdbuf[0] = 0xFFFF0000;
+    }
     ret = svcReplyAndReceive(&index, g_handles, g_active_handles, reply_target);
     reply_target = 0;
 
@@ -466,8 +491,12 @@ int main(int argc, const char *argv[])
     // process responses
     switch (index)
     {
-      case 0: // todo: notification
+      case 0: // notification
       {
+        if (R_FAILED(should_terminate(&term_request)))
+        {
+          svcBreak(USERBREAK_ASSERT);
+        }
         break;
       }
       case 1: // new session
@@ -494,7 +523,11 @@ int main(int argc, const char *argv[])
         break;
       }
     }
-  } while (1);
+  } while (!term_request || g_active_handles != 2);
+
+  srvUnregisterService("Loader");
+  svcCloseHandle(srv_handle);
+  svcCloseHandle(notification_handle);
 
   pxipmExit();
   fsregExit();
