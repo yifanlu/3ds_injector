@@ -93,7 +93,7 @@ static int lzss_decompress(u8 *end)
   return ret;
 }
 
-static int allocate_shared_mem(prog_addrs_t *shared, prog_addrs_t *vaddr, int flags)
+static Result allocate_shared_mem(prog_addrs_t *shared, prog_addrs_t *vaddr, int flags)
 {
   u32 dummy;
 
@@ -104,7 +104,7 @@ static int allocate_shared_mem(prog_addrs_t *shared, prog_addrs_t *vaddr, int fl
   return svcControlMemory(&dummy, shared->text_addr, 0, shared->total_size << 12, flags & 0xF00 | MEMOP_ALLOC, MEMPERM_READ | MEMPERM_WRITE);
 }
 
-static int load_code(prog_addrs_t *shared, u64 prog_handle, int is_compressed)
+static Result load_code(prog_addrs_t *shared, u64 prog_handle, int is_compressed)
 {
   IFile file;
   FS_Archive archive;
@@ -159,9 +159,9 @@ static int load_code(prog_addrs_t *shared, u64 prog_handle, int is_compressed)
   return 0;
 }
 
-static int loader_LoadProcess(Handle &process, u64 prog_handle)
+static Result loader_LoadProcess(Handle &process, u64 prog_handle)
 {
-  int res;
+  Result res;
   int count;
   u32 flags;
   u32 desc;
@@ -238,10 +238,10 @@ static int loader_LoadProcess(Handle &process, u64 prog_handle)
   return res;
 }
 
-static int loader_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS_ProgramInfo *update)
+static Result loader_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS_ProgramInfo *update)
 {
   u64 prog_id;
-  int res;
+  Result res;
 
   prog_id = title->programId;
   if (prog_id >> 32 != 0xFFFF0000)
@@ -289,9 +289,9 @@ static int loader_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS_Pr
   return res;
 }
 
-static int loader_GetProgramInfo(exheader_header *exheader, u64 prog_handle)
+static Result loader_GetProgramInfo(exheader_header *exheader, u64 prog_handle)
 {
-  int res;
+  Result res;
 
   if (prog_handle >> 32 == 0xFFFF0000)
   {
@@ -311,9 +311,9 @@ static int loader_GetProgramInfo(exheader_header *exheader, u64 prog_handle)
   }
 }
 
-static int loader_UnregisterProgram(u64 prog_handle)
+static Result loader_UnregisterProgram(u64 prog_handle)
 {
-  int res;
+  Result res;
 
   if (prog_handle >> 32 == 0xFFFF0000)
   {
