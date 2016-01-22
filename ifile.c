@@ -1,6 +1,6 @@
 #include <3ds.h>
 
-typedef struct
+typedef struct _IFile
 {
   Handle handle;
   u64 pos;

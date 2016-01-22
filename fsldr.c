@@ -5,6 +5,30 @@
 static Handle fsldrHandle;
 static int fsldrRefCount;
 
+Result fsldrInit(void)
+{
+  Result ret = 0;
+
+  if (AtomicPostIncrement(&fsldrRefCount)) return 0;
+
+  ret = srvGetServiceHandle(&fsldrHandle, "fs:LDR");
+  if (R_SUCCEEDED(ret))
+  {
+    ret = FSLDR_InitializeWithSdkVersion(fsldrHandle, SDK_VERSION);
+    if (R_SUCCEEDED(ret)) ret = FSLDR_SetPriority(0);
+    if (R_FAILED(ret)) svcCloseHandle(fsldrHandle);
+  }
+
+  if (R_FAILED(ret)) AtomicDecrement(&fsldrRefCount);
+  return ret;
+}
+
+void fsldrExit(void)
+{
+  if (AtomicDecrement(&fsldrRefCount)) return;
+  svcCloseHandle(fsldrHandle);
+}
+
 Result FSLDR_InitializeWithSdkVersion(Handle session, u32 version)
 {
   u32 *cmdbuf = getThreadCommandBuffer();
@@ -56,28 +80,4 @@ Result FSLDR_OpenFileDirectly(Handle* out, FS_Archive archive, FS_Path path, u32
   if(out) *out = cmdbuf[3];
 
   return cmdbuf[1];
-}
-
-Result fsldrInit(void)
-{
-  Result ret = 0;
-
-  if (AtomicPostIncrement(&fsldrRefCount)) return 0;
-
-  ret = srvGetServiceHandle(&fsldrHandle, "fs:LDR");
-  if (R_SUCCEEDED(ret))
-  {
-    ret = FSLDR_InitializeWithSdkVersion(fsldrHandle, SDK_VERSION);
-    if (R_SUCCEEDED(ret)) ret = FSLDR_SetPriority(0);
-    if (R_FAILED(ret)) svcCloseHandle(fsldrHandle);
-  }
-
-  if (R_FAILED(ret)) AtomicDecrement(&fsldrRefCount);
-  return ret;
-}
-
-void fsldrExit(void)
-{
-  if (AtomicDecrement(&fsldrRefCount)) return;
-  svcCloseHandle(fsldrHandle);
 }

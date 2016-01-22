@@ -1,6 +1,10 @@
 #include <stdlib.h>
 #include <3ds.h>
 #include "exheader.h"
+#include "ifile.h"
+#include "fsldr.h"
+#include "fsreg.h"
+#include "pxipm.h"
 
 #define MAX_SESSIONS 1
 
@@ -240,13 +244,11 @@ static Result loader_LoadProcess(Handle &process, u64 prog_handle)
 
 static Result loader_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS_ProgramInfo *update)
 {
-  u64 prog_id;
   Result res;
 
-  prog_id = title->programId;
-  if (prog_id >> 32 != 0xFFFF0000)
+  if (title->programId >> 32 != 0xFFFF0000)
   {
-    res = FSREG_CheckHostLoadId(prog_handle, prog_id);
+    res = FSREG_CheckHostLoadId(prog_handle);
     // todo: simplify this wonky logic
     // I think it's R_LEVEL(res) == RL_INFO || R_LEVEL(res) != RL_FATAL
     if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
