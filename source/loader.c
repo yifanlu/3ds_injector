@@ -420,6 +420,24 @@ static Result should_terminate(int *term_request)
   return 0;
 }
 
+// this is called before main
+void __appInit()
+{
+  srvInit();
+  fsldrInit();
+  fsregInit();
+  pxipmInit();
+}
+
+// this is called after main exits
+void __appExit()
+{
+  pxipmExit();
+  fsregExit();
+  fsldrExit();
+  srvExit();
+}
+
 int main()
 {
   Result ret;
@@ -433,11 +451,6 @@ int main()
   u32* cmdbuf;
 
   ret = 0;
-  srvInit();
-  fsldrInit();
-  fsregInit();
-  pxipmInit();
-
   srv_handle = &g_handles[1];
   notification_handle = &g_handles[0];
 
@@ -531,9 +544,5 @@ int main()
   svcCloseHandle(*srv_handle);
   svcCloseHandle(*notification_handle);
 
-  pxipmExit();
-  fsregExit();
-  fsldrExit();
-  srvExit();
   return 0;
 }
