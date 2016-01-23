@@ -1,5 +1,5 @@
-#include <stdlib.h>
 #include <3ds.h>
+#include <string.h>
 #include "exheader.h"
 #include "ifile.h"
 #include "fsldr.h"
@@ -37,14 +37,12 @@ static int lzss_decompress(u8 *end)
   char v6; // t1@4
   signed int v7; // r6@4
   int v9; // t1@7
-  int v10; // r8@7
   u8 *v11; // r3@8
   int v12; // r12@8
   int v13; // t1@8
   int v14; // t1@8
   unsigned int v15; // r7@8
   int v16; // r12@8
-  int v17; // r8@9
   int ret;
 
   ret = 0;
@@ -75,7 +73,6 @@ static int lzss_decompress(u8 *end)
           do
           {
             ret = v2[v15];
-            v17 = *(v2 - 1);
             *(v2-- - 1) = ret;
             v16 -= 16;
           }
@@ -85,7 +82,6 @@ static int lzss_decompress(u8 *end)
         {
           v9 = *(v3-- - 1);
           ret = v9;
-          v10 = *(v2 - 1);
           *(v2-- - 1) = v9;
         }
         v5 *= 2;
@@ -105,7 +101,7 @@ static Result allocate_shared_mem(prog_addrs_t *shared, prog_addrs_t *vaddr, int
   shared->text_addr = 0x10000000;
   shared->ro_addr = shared->text_addr + (shared->text_size << 12);
   shared->data_addr = shared->ro_addr + (shared->ro_size << 12);
-  return svcControlMemory(&dummy, shared->text_addr, 0, shared->total_size << 12, flags & 0xF00 | MEMOP_ALLOC, MEMPERM_READ | MEMPERM_WRITE);
+  return svcControlMemory(&dummy, shared->text_addr, 0, shared->total_size << 12, (flags & 0xF00) | MEMOP_ALLOC, MEMPERM_READ | MEMPERM_WRITE);
 }
 
 static Result load_code(prog_addrs_t *shared, u64 prog_handle, int is_compressed)
@@ -114,7 +110,7 @@ static Result load_code(prog_addrs_t *shared, u64 prog_handle, int is_compressed
   FS_Archive archive;
   FS_Path path;
   Result res;
-  u32 size;
+  u64 size;
   u64 total;
 
   archive.id = ARCHIVE_SAVEDATA_AND_CONTENT2;
@@ -147,7 +143,7 @@ static Result load_code(prog_addrs_t *shared, u64 prog_handle, int is_compressed
   }
 
   // read code
-  res = IFile_Read(&file, &total, shared->text_addr, size);
+  res = IFile_Read(&file, &total, (void *)shared->text_addr, size);
   IFile_Close(&file); // done reading
   if (R_FAILED(res))
   {
@@ -157,13 +153,35 @@ static Result load_code(prog_addrs_t *shared, u64 prog_handle, int is_compressed
   // decompress
   if (is_compressed)
   {
-    lzss_decompress(shared->text_addr + size);
+    lzss_decompress((u8 *)shared->text_addr + size);
   }
 
   return 0;
 }
 
-static Result loader_LoadProcess(Handle &process, u64 prog_handle)
+static Result loader_GetProgramInfo(exheader_header *exheader, u64 prog_handle)
+{
+  Result res;
+
+  if (prog_handle >> 32 == 0xFFFF0000)
+  {
+    return FSREG_GetProgramInfo(exheader, 1, prog_handle);
+  }
+  else
+  {
+    res = FSREG_CheckHostLoadId(prog_handle);
+    if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
+    {
+      return PXIPM_GetProgramInfo(exheader, prog_handle);
+    }
+    else
+    {
+      return FSREG_GetProgramInfo(exheader, 1, prog_handle);
+    }
+  }
+}
+
+static Result loader_LoadProcess(Handle *process, u64 prog_handle)
 {
   Result res;
   int count;
@@ -172,6 +190,8 @@ static Result loader_LoadProcess(Handle &process, u64 prog_handle)
   u32 dummy;
   prog_addrs_t shared_addr;
   prog_addrs_t vaddr;
+  Handle codeset;
+  CodeSetInfo codesetinfo;
 
   // make sure the cached info corrosponds to the current prog_handle
   if (g_cached_prog_handle != prog_handle)
@@ -189,7 +209,7 @@ static Result loader_LoadProcess(Handle &process, u64 prog_handle)
   flags = 0;
   for (count = 0; count < 28; count++)
   {
-    desc = *(u32 *)g_exheader.accessdesc.arm11kernelcaps.descriptors[count];
+    desc = g_exheader.accessdesc.arm11kernelcaps.descriptors[count];
     if (0x1FE == desc >> 23)
     {
       flags = desc & 0xF00;
@@ -201,12 +221,12 @@ static Result loader_LoadProcess(Handle &process, u64 prog_handle)
   }
 
   // allocate process memory
-  vaddr.text_addr = *(u32_t *)g_exheader.codesetinfo.text.address;
-  vaddr.text_size = (*(u32_t *)g_exheader.codesetinfo.text.codesize + 4095) >> 12;
-  vaddr.ro_addr = *(u32_t *)g_exheader.codesetinfo.ro.address;
-  vaddr.ro_size = (*(u32_t *)g_exheader.codesetinfo.ro.codesize + 4095) >> 12;
-  vaddr.data_addr = *(u32_t *)g_exheader.codesetinfo.data.address;
-  vaddr.data_size = (*(u32_t *)g_exheader.codesetinfo.data.codesize + 4095) >> 12;
+  vaddr.text_addr = g_exheader.codesetinfo.text.address;
+  vaddr.text_size = (g_exheader.codesetinfo.text.codesize + 4095) >> 12;
+  vaddr.ro_addr = g_exheader.codesetinfo.ro.address;
+  vaddr.ro_size = (g_exheader.codesetinfo.ro.codesize + 4095) >> 12;
+  vaddr.data_addr = g_exheader.codesetinfo.data.address;
+  vaddr.data_size = (g_exheader.codesetinfo.data.codesize + 4095) >> 12;
   vaddr.total_size = vaddr.text_size + vaddr.ro_size + vaddr.data_size;
   if ((res = allocate_shared_mem(&shared_addr, &vaddr, flags)) < 0)
   {
@@ -214,23 +234,23 @@ static Result loader_LoadProcess(Handle &process, u64 prog_handle)
   }
 
   // load code
-  if ((res = load_code(&shared_addr, prog_handle, g_exheader.codesetinfo.flags & 1)) >= 0)
+  if ((res = load_code(&shared_addr, prog_handle, g_exheader.codesetinfo.flags.flag & 1)) >= 0)
   {
-    memcpy(&codesetinfo.name, g_exheader.codesetinfo.name);
-    codesetinfo.program_id = prog_id;
+    memcpy(&codesetinfo.name, g_exheader.codesetinfo.name, 8);
+    memcpy(codesetinfo.program_id, g_exheader.arm11systemlocalcaps.programid, 8);
     codesetinfo.text_addr = vaddr.text_addr;
     codesetinfo.text_size = vaddr.text_size;
     codesetinfo.text_size_total = vaddr.text_size;
     codesetinfo.ro_addr = vaddr.ro_addr;
     codesetinfo.ro_size = vaddr.ro_size;
     codesetinfo.ro_size_total = vaddr.ro_size;
-    codesetinfo.data_addr = vaddr.data_addr;
-    codesetinfo.data_size = vaddr.data_size;
-    codesetinfo.data_size_total = vaddr.data_size;
-    res = svcCreateCodeSet(&codeset, &codesetinfo, shared_addr.text_addr, shared_addr.ro_addr, shared_addr.data_addr);
+    codesetinfo.rw_addr = vaddr.data_addr;
+    codesetinfo.rw_size = vaddr.data_size;
+    codesetinfo.rw_size_total = vaddr.data_size;
+    res = svcCreateCodeSet(&codeset, &codesetinfo, (void *)shared_addr.text_addr, (void *)shared_addr.ro_addr, (void *)shared_addr.data_addr);
     if (res >= 0)
     {
-      res = svcCreateProcess(process, codeset, &g_exheader.accessdesc.arm11kernelcaps, count);
+      res = svcCreateProcess(process, codeset, g_exheader.accessdesc.arm11kernelcaps.descriptors, count);
       if (res >= 0)
       {
         return 0;
@@ -238,7 +258,7 @@ static Result loader_LoadProcess(Handle &process, u64 prog_handle)
     }
   }
 
-  svcControlMemory(&dummy, shared_addr->text_addr, 0, shared_addr->total_size << 12, MEMOP_FREE, 0);
+  svcControlMemory(&dummy, shared_addr.text_addr, 0, shared_addr.total_size << 12, MEMOP_FREE, 0);
   return res;
 }
 
@@ -248,7 +268,7 @@ static Result loader_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS
 
   if (title->programId >> 32 != 0xFFFF0000)
   {
-    res = FSREG_CheckHostLoadId(prog_handle);
+    res = FSREG_CheckHostLoadId(*prog_handle);
     // todo: simplify this wonky logic
     // I think it's R_LEVEL(res) == RL_INFO || R_LEVEL(res) != RL_FATAL
     if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
@@ -260,7 +280,7 @@ static Result loader_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS
       }
       if (*prog_handle >> 32 != 0xFFFF0000)
       {
-        res = FSREG_CheckHostLoadId(0, *prog_handle);
+        res = FSREG_CheckHostLoadId(*prog_handle);
         if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
         {
           return 0;
@@ -281,7 +301,7 @@ static Result loader_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS
     {
       return 0;
     }
-    res = FSREG_CheckHostLoadId(0, *prog_handle);
+    res = FSREG_CheckHostLoadId(*prog_handle);
     if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
     {
       return 0;
@@ -289,28 +309,6 @@ static Result loader_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS
     svcBreak(USERBREAK_ASSERT);
   }
   return res;
-}
-
-static Result loader_GetProgramInfo(exheader_header *exheader, u64 prog_handle)
-{
-  Result res;
-
-  if (prog_handle >> 32 == 0xFFFF0000)
-  {
-    return FSREG_GetProgramInfo(exheader, 1, prog_handle);
-  }
-  else
-  {
-    res = FSREG_CheckHostLoadId(0, prog_handle);
-    if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
-    {
-      return PXIPM_GetProgramInfo(exheader, prog_handle);
-    }
-    else
-    {
-      return FSREG_GetProgramInfo(exheader, 1, prog_handle);
-    }
-  }
 }
 
 static Result loader_UnregisterProgram(u64 prog_handle)
@@ -323,7 +321,7 @@ static Result loader_UnregisterProgram(u64 prog_handle)
   }
   else
   {
-    res = FSREG_CheckHostLoadId(0, prog_handle);
+    res = FSREG_CheckHostLoadId(prog_handle);
     if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
     {
       return PXIPM_UnregisterProgram(prog_handle);
@@ -345,23 +343,24 @@ static void handle_commands(void)
 
   cmdbuf = getThreadCommandBuffer();
   cmdid = cmdbuf[0] >> 16;
+  res = 0;
   switch (cmdid)
   {
     case 1: // LoadProcess
     {
       res = loader_LoadProcess(&handle, *(u64 *)&cmdbuf[1]);
-      cmdid[0] = 0x10042;
-      cmdid[1] = res;
-      cmdid[2] = 16;
-      cmdid[3] = handle;
+      cmdbuf[0] = 0x10042;
+      cmdbuf[1] = res;
+      cmdbuf[2] = 16;
+      cmdbuf[3] = handle;
       break;
     }
     case 2: // RegisterProgram
     {
-      res = loader_RegisterProgram(&prog_handle, (FS_ProgramInfo *)&cmdid[1], (FS_ProgramInfo *)&cmdid[5]);
-      cmdid[0] = 0x200C0;
-      cmdid[1] = res;
-      *(u64 *)&cmdid[2] = prog_handle;
+      res = loader_RegisterProgram(&prog_handle, (FS_ProgramInfo *)&cmdbuf[1], (FS_ProgramInfo *)&cmdbuf[5]);
+      cmdbuf[0] = 0x200C0;
+      cmdbuf[1] = res;
+      *(u64 *)&cmdbuf[2] = prog_handle;
       break;
     }
     case 3: // UnregisterProgram
@@ -370,13 +369,13 @@ static void handle_commands(void)
       {
         g_cached_prog_handle = 0;
       }
-      cmdid[0] = 0x30040;
-      cmdid[1] = loader_UnregisterProgram(*(u64 *)&cmdbuf[1]);
+      cmdbuf[0] = 0x30040;
+      cmdbuf[1] = loader_UnregisterProgram(*(u64 *)&cmdbuf[1]);
       break;
     }
     case 4: // GetProgramInfo
     {
-      prog_handle = *(u64 *)&cmdid[1];
+      prog_handle = *(u64 *)&cmdbuf[1];
       if (prog_handle != g_cached_prog_handle)
       {
         res = loader_GetProgramInfo(&g_exheader, prog_handle);
@@ -390,10 +389,10 @@ static void handle_commands(void)
         }
       }
       memcpy(&g_ret_buf, &g_exheader, 1024);
-      cmdid[0] = 0x40042;
-      cmdid[1] = res;
-      cmdid[2] = 0x1000002;
-      cmdid[3] = &g_ret_buf;
+      cmdbuf[0] = 0x40042;
+      cmdbuf[1] = res;
+      cmdbuf[2] = 0x1000002;
+      cmdbuf[3] = (u32) &g_ret_buf;
       break;
     }
     default: // error
@@ -404,7 +403,7 @@ static void handle_commands(void)
   }
 }
 
-static Result should_terminate(int &term_request)
+static Result should_terminate(int *term_request)
 {
   u32 notid;
   Result ret;
@@ -421,10 +420,11 @@ static Result should_terminate(int &term_request)
   return 0;
 }
 
-int main(int argc, const char *argv[])
+int main()
 {
   Result ret;
   Handle handle;
+  Handle reply_target;
   Handle *srv_handle;
   Handle *notification_handle;
   s32 index;
@@ -503,7 +503,7 @@ int main(int argc, const char *argv[])
       }
       case 1: // new session
       {
-        if (R_FAILED(svcAcceptSession(&handle, srv_handle)))
+        if (R_FAILED(svcAcceptSession(&handle, *srv_handle)))
         {
           svcBreak(USERBREAK_ASSERT);
         }
@@ -528,8 +528,8 @@ int main(int argc, const char *argv[])
   } while (!term_request || g_active_handles != 2);
 
   srvUnregisterService("Loader");
-  svcCloseHandle(srv_handle);
-  svcCloseHandle(notification_handle);
+  svcCloseHandle(*srv_handle);
+  svcCloseHandle(*notification_handle);
 
   pxipmExit();
   fsregExit();

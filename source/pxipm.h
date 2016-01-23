@@ -1,6 +1,7 @@
 #pragma once
 
 #include <3ds/types.h>
+#include "exheader.h"
 
 Result pxipmInit(void);
 void pxipmExit(void);

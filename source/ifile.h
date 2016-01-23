@@ -2,7 +2,12 @@
 
 #include <3ds/types.h>
 
-typedef struct _IFile IFile;
+typedef struct
+{
+  Handle handle;
+  u64 pos;
+  u64 size;
+} IFile;
 
 Result IFile_Open(IFile *file, FS_Archive archive, FS_Path path, u32 flags);
 Result IFile_Close(IFile *file);

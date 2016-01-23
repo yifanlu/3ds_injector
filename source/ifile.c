@@ -1,11 +1,6 @@
 #include <3ds.h>
-
-typedef struct _IFile
-{
-  Handle handle;
-  u64 pos;
-  u64 size;
-} IFile;
+#include "ifile.h"
+#include "fsldr.h"
 
 Result IFile_Open(IFile *file, FS_Archive archive, FS_Path path, u32 flags)
 {
@@ -45,9 +40,12 @@ Result IFile_Read(IFile *file, u64 *total, void *buffer, u32 len)
     return 0;
   }
 
+  buf = (char *)buffer;
+  cur = 0;
+  left = len;
   while (1)
   {
-    res = FSFILE_Read(file->handle, &read, file->pos, buffer, left);
+    res = FSFILE_Read(file->handle, &read, file->pos, buf, left);
     if (R_FAILED(res))
     {
       break;
@@ -59,7 +57,7 @@ Result IFile_Read(IFile *file, u64 *total, void *buffer, u32 len)
     {
       break;
     }
-    buffer += read;
+    buf += read;
     left -= read;
   }
 

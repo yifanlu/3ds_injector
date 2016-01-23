@@ -1,4 +1,5 @@
 #include <3ds.h>
+#include "fsldr.h"
 
 #define SDK_VERSION 0xA0000C8
 

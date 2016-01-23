@@ -1,4 +1,6 @@
 #include <3ds.h>
+#include <string.h>
+#include "fsreg.h"
 
 static Handle fsregHandle;
 static int fsregRefCount;
@@ -21,13 +23,13 @@ void fsregExit(void)
   svcCloseHandle(fsregHandle);
 }
 
-Result FSREG_CheckHostLoadId(u64 *prog_handle)
+Result FSREG_CheckHostLoadId(u64 prog_handle)
 {
   u32 *cmdbuf = getThreadCommandBuffer();
 
   cmdbuf[0] = IPC_MakeHeader(0x406,2,0); // 0x4060080
-  cmdbuf[1] = (u32) (*prog_handle);
-  cmdbuf[2] = (u32) (*prog_handle >> 32);
+  cmdbuf[1] = (u32) (prog_handle);
+  cmdbuf[2] = (u32) (prog_handle >> 32);
 
   Result ret = 0;
   if(R_FAILED(ret = svcSendSyncRequest(fsregHandle))) return ret;
@@ -44,7 +46,7 @@ Result FSREG_LoadProgram(u64 *prog_handle, FS_ProgramInfo *title)
 
   Result ret = 0;
   if(R_FAILED(ret = svcSendSyncRequest(fsregHandle))) return ret;
-  *prog_handle = (u64*)&cmdbuf[2];
+  *prog_handle = *(u64 *)&cmdbuf[2];
 
   return cmdbuf[1];
 }
@@ -70,8 +72,8 @@ Result FSREG_UnloadProgram(u64 prog_handle)
   u32 *cmdbuf = getThreadCommandBuffer();
 
   cmdbuf[0] = IPC_MakeHeader(0x405,2,0); // 0x4050080
-  cmdbuf[1] = (u32) (*prog_handle);
-  cmdbuf[2] = (u32) (*prog_handle >> 32);
+  cmdbuf[1] = (u32) (prog_handle);
+  cmdbuf[2] = (u32) (prog_handle >> 32);
 
   Result ret = 0;
   if(R_FAILED(ret = svcSendSyncRequest(fsregHandle))) return ret;

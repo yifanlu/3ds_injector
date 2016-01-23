@@ -1,4 +1,6 @@
 #include <3ds.h>
+#include <string.h>
+#include "pxipm.h"
 
 static Handle pxipmHandle;
 static int pxipmRefCount;
@@ -31,7 +33,7 @@ Result PXIPM_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS_Program
 
   Result ret = 0;
   if(R_FAILED(ret = svcSendSyncRequest(pxipmHandle))) return ret;
-  *prog_handle = (u64*)&cmdbuf[2];
+  *prog_handle = *(u64*)&cmdbuf[2];
 
   return cmdbuf[1];
 }
@@ -41,8 +43,8 @@ Result PXIPM_GetProgramInfo(exheader_header *exheader, u64 prog_handle)
   u32 *cmdbuf = getThreadCommandBuffer();
 
   cmdbuf[0] = IPC_MakeHeader(0x1,2,2); // 0x10082
-  cmdbuf[1] = (u32) (*prog_handle);
-  cmdbuf[2] = (u32) (*prog_handle >> 32);
+  cmdbuf[1] = (u32) (prog_handle);
+  cmdbuf[2] = (u32) (prog_handle >> 32);
   cmdbuf[3] = (0x400 << 8) | 0x4;
   cmdbuf[4] = (u32) exheader;
 
@@ -57,8 +59,8 @@ Result PXIPM_UnregisterProgram(u64 prog_handle)
   u32 *cmdbuf = getThreadCommandBuffer();
 
   cmdbuf[0] = IPC_MakeHeader(0x3,2,0); // 0x30080
-  cmdbuf[1] = (u32) (*prog_handle);
-  cmdbuf[2] = (u32) (*prog_handle >> 32);
+  cmdbuf[1] = (u32) (prog_handle);
+  cmdbuf[2] = (u32) (prog_handle >> 32);
 
   Result ret = 0;
   if(R_FAILED(ret = svcSendSyncRequest(pxipmHandle))) return ret;
