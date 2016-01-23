@@ -37,7 +37,7 @@ CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu99
 
 ASFLAGS	:=	$(ARCH)
-LDFLAGS	=	-flto -specs=$(TOPDIR)/sysmodule.specs $(ARCH) -Wl,-Map,$(notdir $*.map)
+LDFLAGS	=	-flto -Xlinker --defsym="__start__=0x14000000" -specs=3dsx.specs $(ARCH) -Wl,-Map,$(notdir $*.map)
 
 LIBS	:= -lctru
 
