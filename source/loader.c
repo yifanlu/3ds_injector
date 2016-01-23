@@ -237,7 +237,7 @@ static Result loader_LoadProcess(Handle *process, u64 prog_handle)
   if ((res = load_code(&shared_addr, prog_handle, g_exheader.codesetinfo.flags.flag & 1)) >= 0)
   {
     memcpy(&codesetinfo.name, g_exheader.codesetinfo.name, 8);
-    memcpy(codesetinfo.program_id, g_exheader.arm11systemlocalcaps.programid, 8);
+    memcpy(&codesetinfo.program_id, g_exheader.arm11systemlocalcaps.programid, 8);
     codesetinfo.text_addr = vaddr.text_addr;
     codesetinfo.text_size = vaddr.text_size;
     codesetinfo.text_size_total = vaddr.text_size;
