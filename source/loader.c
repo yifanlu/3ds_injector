@@ -1,5 +1,6 @@
 #include <3ds.h>
 #include <string.h>
+#include <sys/iosupport.h>
 #include "exheader.h"
 #include "ifile.h"
 #include "fsldr.h"
@@ -436,6 +437,20 @@ void __appExit()
   fsregExit();
   fsldrExit();
   srvExit();
+}
+
+// stubs for non-needed pre-main functions
+ 
+void __ctru_exit(int rc)
+{
+  __appExit();
+  svcExitProcess();
+}
+ 
+void initSystem(void (*retAddr)(void))
+{
+  __syscalls.exit = __ctru_exit;
+  __appInit();
 }
 
 int main()
