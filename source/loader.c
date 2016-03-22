@@ -405,6 +405,7 @@ static void handle_commands(void)
     {
       cmdbuf[0] = 0x40;
       cmdbuf[1] = 0xD900182F;
+      break;
     }
   }
 }
@@ -503,7 +504,6 @@ int main()
       cmdbuf[0] = 0xFFFF0000;
     }
     ret = svcReplyAndReceive(&index, g_handles, g_active_handles, reply_target);
-    reply_target = 0;
 
     // check if any handle has been closed
     if (ret == 0xC920181A)
@@ -519,7 +519,7 @@ int main()
           }
         }
       }
-      svcCloseHandle(reply_target);
+      svcCloseHandle(g_handles[index]);
       g_handles[index] = g_handles[g_active_handles-1];
       g_active_handles--;
     }
@@ -529,6 +529,7 @@ int main()
     }
 
     // process responses
+    reply_target = 0;
     switch (index)
     {
       case 0: // notification
@@ -558,8 +559,8 @@ int main()
       }
       default: // session
       {
-        reply_target = g_handles[index];
         handle_commands();
+        reply_target = g_handles[index];
         break;
       }
     }
