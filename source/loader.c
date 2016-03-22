@@ -269,10 +269,12 @@ static Result loader_LoadProcess(Handle *process, u64 prog_handle)
 static Result loader_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS_ProgramInfo *update)
 {
   Result res;
+  u64 prog_id;
 
-  if (title->programId >> 32 != 0xFFFF0000)
+  prog_id = title->programId;
+  if (prog_id >> 32 != 0xFFFF0000)
   {
-    res = FSREG_CheckHostLoadId(*prog_handle);
+    res = FSREG_CheckHostLoadId(prog_id);
     //if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
     if (R_FAILED(res) || (R_SUCCEEDED(res) && R_LEVEL(res) != RL_SUCCESS))
     {
@@ -294,12 +296,12 @@ static Result loader_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS
     }
   }
 
-  if ((title->mediaType != update->mediaType) || (title->programId != update->programId))
+  if ((title->mediaType != update->mediaType) || (prog_id != update->programId))
   {
     svcBreak(USERBREAK_ASSERT);
   }
   res = FSREG_LoadProgram(prog_handle, title);
-  if (res < 0)
+  if (R_SUCCEEDED(res))
   {
     if (*prog_handle >> 32 == 0xFFFF0000)
     {
@@ -309,9 +311,8 @@ static Result loader_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS
     //if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
     if (R_FAILED(res) || (R_SUCCEEDED(res) && R_LEVEL(res) != RL_SUCCESS))
     {
-      return 0;
+      svcBreak(USERBREAK_ASSERT);
     }
-    svcBreak(USERBREAK_ASSERT);
   }
   return res;
 }
