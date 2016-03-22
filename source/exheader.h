@@ -7,14 +7,14 @@ typedef struct
 	u8 reserved[5];
 	u8 flag;
 	u8 remasterversion[2];
-} exheader_systeminfoflags;
+} PACKED exheader_systeminfoflags;
 
 typedef struct
 {
 	u32 address;
 	u32 nummaxpages;
 	u32 codesize;
-} exheader_codesegmentinfo;
+} PACKED exheader_codesegmentinfo;
 
 typedef struct
 {
@@ -26,12 +26,12 @@ typedef struct
 	u8 reserved[4];
 	exheader_codesegmentinfo data;
 	u8 bsssize[4];
-} exheader_codesetinfo;
+} PACKED exheader_codesetinfo;
 
 typedef struct
 {
 	u64 programid[0x30];
-} exheader_dependencylist;
+} PACKED exheader_dependencylist;
 
 typedef struct
 {
@@ -39,7 +39,7 @@ typedef struct
 	u8 reserved[4];
 	u8 jumpid[8];
 	u8 reserved2[0x30];
-} exheader_systeminfo;
+} PACKED exheader_systeminfo;
 
 typedef struct
 {
@@ -48,7 +48,7 @@ typedef struct
 	u8 reserved[8];
 	u8 accessinfo[7];
 	u8 otherattributes;
-} exheader_storageinfo;
+} PACKED exheader_storageinfo;
 
 typedef struct
 {
@@ -59,19 +59,19 @@ typedef struct
 	u64 serviceaccesscontrol[0x20];
 	u8 reserved[0x1f];
 	u8 resourcelimitcategory;
-} exheader_arm11systemlocalcaps;
+} PACKED exheader_arm11systemlocalcaps;
 
 typedef struct
 {
 	u32 descriptors[28];
 	u8 reserved[0x10];
-} exheader_arm11kernelcapabilities;
+} PACKED exheader_arm11kernelcapabilities;
 
 typedef struct
 {
 	u8 descriptors[15];
 	u8 descversion;
-} exheader_arm9accesscontrol;
+} PACKED exheader_arm9accesscontrol;
 
 typedef struct
 {
@@ -93,5 +93,5 @@ typedef struct
 		exheader_arm11systemlocalcaps arm11systemlocalcaps;
 		exheader_arm11kernelcapabilities arm11kernelcaps;
 		exheader_arm9accesscontrol arm9accesscontrol;
-	} accessdesc;
-} exheader_header;
+	} PACKED accessdesc;
+} PACKED exheader_header;
