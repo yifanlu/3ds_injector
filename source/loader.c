@@ -172,7 +172,9 @@ static Result loader_GetProgramInfo(exheader_header *exheader, u64 prog_handle)
   else
   {
     res = FSREG_CheckHostLoadId(prog_handle);
-    if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
+    //if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
+    //so use PXIPM if FSREG fails OR returns "info", is the second condition a bug?
+    if (R_FAILED(res) || (R_SUCCEEDED(res) && R_LEVEL(res) != RL_SUCCESS))
     {
       return PXIPM_GetProgramInfo(exheader, prog_handle);
     }
@@ -271,9 +273,8 @@ static Result loader_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS
   if (title->programId >> 32 != 0xFFFF0000)
   {
     res = FSREG_CheckHostLoadId(*prog_handle);
-    // todo: simplify this wonky logic
-    // I think it's R_LEVEL(res) == RL_INFO || R_LEVEL(res) != RL_FATAL
-    if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
+    //if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
+    if (R_FAILED(res) || (R_SUCCEEDED(res) && R_LEVEL(res) != RL_SUCCESS))
     {
       res = PXIPM_RegisterProgram(prog_handle, title, update);
       if (res < 0)
@@ -283,7 +284,8 @@ static Result loader_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS
       if (*prog_handle >> 32 != 0xFFFF0000)
       {
         res = FSREG_CheckHostLoadId(*prog_handle);
-        if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
+        //if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
+        if (R_FAILED(res) || (R_SUCCEEDED(res) && R_LEVEL(res) != RL_SUCCESS))
         {
           return 0;
         }
@@ -304,7 +306,8 @@ static Result loader_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS
       return 0;
     }
     res = FSREG_CheckHostLoadId(*prog_handle);
-    if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
+    //if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
+    if (R_FAILED(res) || (R_SUCCEEDED(res) && R_LEVEL(res) != RL_SUCCESS))
     {
       return 0;
     }
@@ -324,7 +327,8 @@ static Result loader_UnregisterProgram(u64 prog_handle)
   else
   {
     res = FSREG_CheckHostLoadId(prog_handle);
-    if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
+    //if ((res >= 0 && (unsigned)res >> 27) || (res < 0 && ((unsigned)res >> 27)-32))
+    if (R_FAILED(res) || (R_SUCCEEDED(res) && R_LEVEL(res) != RL_SUCCESS))
     {
       return PXIPM_UnregisterProgram(prog_handle);
     }
