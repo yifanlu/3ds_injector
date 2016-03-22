@@ -1,5 +1,6 @@
 #include <3ds.h>
 #include "fsldr.h"
+#include "srvsys.h"
 
 #define SDK_VERSION 0xA0000C8
 
@@ -12,7 +13,7 @@ Result fsldrInit(void)
 
   if (AtomicPostIncrement(&fsldrRefCount)) return 0;
 
-  ret = srvGetServiceHandle(&fsldrHandle, "fs:LDR");
+  ret = srvSysGetServiceHandle(&fsldrHandle, "fs:LDR");
   if (R_SUCCEEDED(ret))
   {
     ret = FSLDR_InitializeWithSdkVersion(fsldrHandle, SDK_VERSION);

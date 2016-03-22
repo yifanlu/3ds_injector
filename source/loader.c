@@ -6,6 +6,7 @@
 #include "fsldr.h"
 #include "fsreg.h"
 #include "pxipm.h"
+#include "srvsys.h"
 
 #define MAX_SESSIONS 1
 
@@ -409,7 +410,7 @@ static Result should_terminate(int *term_request)
   u32 notid;
   Result ret;
 
-  ret = srvReceiveNotification(&notid);
+  ret = srvSysReceiveNotification(&notid);
   if (R_FAILED(ret))
   {
     return ret;
@@ -424,7 +425,7 @@ static Result should_terminate(int *term_request)
 // this is called before main
 void __appInit()
 {
-  srvInit();
+  srvSysInit();
   fsldrInit();
   fsregInit();
   pxipmInit();
@@ -436,20 +437,25 @@ void __appExit()
   pxipmExit();
   fsregExit();
   fsldrExit();
-  srvExit();
+  srvSysExit();
 }
 
 // stubs for non-needed pre-main functions
+void __sync_init();
+void __sync_fini();
+void __system_initSyscalls();
  
 void __ctru_exit(int rc)
 {
   __appExit();
+  __sync_fini();
   svcExitProcess();
 }
  
 void initSystem(void (*retAddr)(void))
 {
-  __syscalls.exit = __ctru_exit;
+  __sync_init();
+  __system_initSyscalls();
   __appInit();
 }
 
@@ -469,12 +475,12 @@ int main()
   srv_handle = &g_handles[1];
   notification_handle = &g_handles[0];
 
-  if (R_FAILED(srvRegisterService(srv_handle, "Loader", MAX_SESSIONS)))
+  if (R_FAILED(srvSysRegisterService(srv_handle, "Loader", MAX_SESSIONS)))
   {
     svcBreak(USERBREAK_ASSERT);
   }
 
-  if (R_FAILED(srvEnableNotification(notification_handle)))
+  if (R_FAILED(srvSysEnableNotification(notification_handle)))
   {
     svcBreak(USERBREAK_ASSERT);
   }
@@ -555,7 +561,7 @@ int main()
     }
   } while (!term_request || g_active_handles != 2);
 
-  srvUnregisterService("Loader");
+  srvSysUnregisterService("Loader");
   svcCloseHandle(*srv_handle);
   svcCloseHandle(*notification_handle);
 

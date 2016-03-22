@@ -1,6 +1,7 @@
 #include <3ds.h>
 #include <string.h>
 #include "fsreg.h"
+#include "srvsys.h"
 
 static Handle fsregHandle;
 static int fsregRefCount;
@@ -11,7 +12,7 @@ Result fsregInit(void)
 
   if (AtomicPostIncrement(&fsregRefCount)) return 0;
 
-  ret = srvGetServiceHandle(&fsregHandle, "fs:REG");
+  ret = srvSysGetServiceHandle(&fsregHandle, "fs:REG");
 
   if (R_FAILED(ret)) AtomicDecrement(&fsregRefCount);
   return ret;
