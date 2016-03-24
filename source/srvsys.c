@@ -35,12 +35,25 @@ Result srvSysInit()
   }
   if (R_SUCCEEDED(rc))
   {
-    rc = srvRegisterClient();
+    rc = srvSysRegisterClient();
     srvRefCount++;
   }
 
   RecursiveLock_Unlock(&initLock);
   return rc;
+}
+
+Result srvSysRegisterClient(void)
+{
+  Result rc = 0;
+  u32* cmdbuf = getThreadCommandBuffer();
+
+  cmdbuf[0] = IPC_MakeHeader(0x1,0,2); // 0x10002
+  cmdbuf[1] = IPC_Desc_CurProcessHandle();
+
+  if(R_FAILED(rc = svcSendSyncRequest(srvHandle)))return rc;
+
+  return cmdbuf[1];
 }
 
 Result srvSysExit()
@@ -66,16 +79,19 @@ Result srvSysExit()
 
 Result srvSysGetServiceHandle(Handle* out, const char* name)
 {
-  /* Look in service-list given to us by loader. If we find find a match,
-     we return it. */
-  Handle h = envGetHandle(name);
+  Result rc = 0;
+  u32* cmdbuf = getThreadCommandBuffer();
 
-  if(h != 0) {
-    return svcDuplicateHandle(out, h);
-  }
+  cmdbuf[0] = IPC_MakeHeader(0x5,4,0); // 0x50100
+  strncpy((char*) &cmdbuf[1], name,8);
+  cmdbuf[3] = strlen(name);
+  cmdbuf[4] = 0x0;
 
-  /* Normal request to service manager. */
-  return srvGetServiceHandleDirect(out, name);
+  if(R_FAILED(rc = svcSendSyncRequest(srvHandle)))return rc;
+
+  if(out) *out = cmdbuf[3];
+
+  return cmdbuf[1];
 }
 
 Result srvSysEnableNotification(Handle* semaphoreOut)

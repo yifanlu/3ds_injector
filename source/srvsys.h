@@ -17,6 +17,9 @@ Result srvSysExit(void);
  */
 Result srvSysGetServiceHandle(Handle* out, const char* name);
 
+/// Registers the current process as a client to the service API.
+Result srvSysRegisterClient(void);
+
 /**
  * @brief Enables service notificatios, returning a notification semaphore.
  * @param semaphoreOut Pointer to output the notification semaphore to.
