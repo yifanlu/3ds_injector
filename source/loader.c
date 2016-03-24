@@ -211,7 +211,7 @@ static Result loader_LoadProcess(Handle *process, u64 prog_handle)
   flags = 0;
   for (count = 0; count < 28; count++)
   {
-    desc = g_exheader.accessdesc.arm11kernelcaps.descriptors[count];
+    desc = g_exheader.arm11kernelcaps.descriptors[count];
     if (0x1FE == desc >> 23)
     {
       flags = desc & 0xF00;
@@ -252,7 +252,8 @@ static Result loader_LoadProcess(Handle *process, u64 prog_handle)
     res = svcCreateCodeSet(&codeset, &codesetinfo, (void *)shared_addr.text_addr, (void *)shared_addr.ro_addr, (void *)shared_addr.data_addr);
     if (res >= 0)
     {
-      res = svcCreateProcess(process, codeset, g_exheader.accessdesc.arm11kernelcaps.descriptors, count);
+      res = svcCreateProcess(process, codeset, g_exheader.arm11kernelcaps.descriptors, count);
+      svcCloseHandle(codeset);
       if (res >= 0)
       {
         return 0;
