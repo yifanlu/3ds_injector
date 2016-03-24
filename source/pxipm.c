@@ -24,13 +24,23 @@ void pxipmExit(void)
   svcCloseHandle(pxipmHandle);
 }
 
+
+static __attribute__((naked)) void svcBreak2(int reason)
+{
+  asm ("svc 0x3c");
+}
+
 Result PXIPM_RegisterProgram(u64 *prog_handle, FS_ProgramInfo *title, FS_ProgramInfo *update)
 {
   u32 *cmdbuf = getThreadCommandBuffer();
 
   cmdbuf[0] = IPC_MakeHeader(0x2,8,0); // 0x20200
-  memcpy(&cmdbuf[1], &title, sizeof(FS_ProgramInfo));
-  memcpy(&cmdbuf[5], &update, sizeof(FS_ProgramInfo));
+  memcpy(&cmdbuf[1], &title->programId, sizeof(u64));
+  *(u8 *)&cmdbuf[3] = title->mediaType;
+  memcpy(((u8 *)&cmdbuf[3])+1, &title->padding, 7);
+  memcpy(&cmdbuf[5], &update->programId, sizeof(u64));
+  *(u8 *)&cmdbuf[7] = update->mediaType;
+  memcpy(((u8 *)&cmdbuf[7])+1, &update->padding, 7);
 
   Result ret = 0;
   if(R_FAILED(ret = svcSendSyncRequest(pxipmHandle))) return ret;

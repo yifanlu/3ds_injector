@@ -342,6 +342,8 @@ static Result loader_UnregisterProgram(u64 prog_handle)
 
 static void handle_commands(void)
 {
+  FS_ProgramInfo title;
+  FS_ProgramInfo update;
   u32* cmdbuf;
   u16 cmdid;
   int res;
@@ -364,7 +366,9 @@ static void handle_commands(void)
     }
     case 2: // RegisterProgram
     {
-      res = loader_RegisterProgram(&prog_handle, (FS_ProgramInfo *)&cmdbuf[1], (FS_ProgramInfo *)&cmdbuf[5]);
+      memcpy(&title, &cmdbuf[1], sizeof(FS_ProgramInfo));
+      memcpy(&update, &cmdbuf[5], sizeof(FS_ProgramInfo));
+      res = loader_RegisterProgram(&prog_handle, &title, &update);
       cmdbuf[0] = 0x200C0;
       cmdbuf[1] = res;
       *(u64 *)&cmdbuf[2] = prog_handle;

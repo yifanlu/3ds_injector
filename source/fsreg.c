@@ -43,7 +43,9 @@ Result FSREG_LoadProgram(u64 *prog_handle, FS_ProgramInfo *title)
   u32 *cmdbuf = getThreadCommandBuffer();
 
   cmdbuf[0] = IPC_MakeHeader(0x404,4,0); // 0x4040100
-  memcpy(&cmdbuf[1], &title, sizeof(FS_ProgramInfo));
+  memcpy(&cmdbuf[1], &title->programId, sizeof(u64));
+  *(u8 *)&cmdbuf[3] = title->mediaType;
+  memcpy(((u8 *)&cmdbuf[3])+1, &title->padding, 7);
 
   Result ret = 0;
   if(R_FAILED(ret = svcSendSyncRequest(fsregHandle))) return ret;
