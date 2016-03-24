@@ -123,15 +123,13 @@ static Result load_code(prog_addrs_t *shared, u64 prog_handle, int is_compressed
   path.type = PATH_BINARY;
   path.data = CODE_PATH;
   path.size = sizeof(CODE_PATH);
-  res = IFile_Open(&file, archive, path, FS_OPEN_READ);
-  if (R_FAILED(res))
+  if (R_FAILED(IFile_Open(&file, archive, path, FS_OPEN_READ)))
   {
     svcBreak(USERBREAK_ASSERT);
   }
 
   // get file size
-  res = IFile_GetSize(&file, &size);
-  if (R_FAILED(res))
+  if (R_FAILED(IFile_GetSize(&file, &size)))
   {
     IFile_Close(&file);
     svcBreak(USERBREAK_ASSERT);
@@ -221,7 +219,7 @@ static Result loader_LoadProcess(Handle *process, u64 prog_handle)
   }
   if (flags == 0)
   {
-    return 0xD8E00402;
+    return MAKERESULT(RL_PERMANENT, RS_INVALIDARG, 1, 2);
   }
 
   // allocate process memory
@@ -510,63 +508,69 @@ int main()
     }
     ret = svcReplyAndReceive(&index, g_handles, g_active_handles, reply_target);
 
-    // check if any handle has been closed
-    if (ret == 0xC920181A)
+    if (R_FAILED(ret))
     {
-      if (index == -1)
+      // check if any handle has been closed
+      if (ret == 0xC920181A)
       {
-        for (i = 2; i < MAX_SESSIONS+2; i++)
+        if (index == -1)
         {
-          if (g_handles[i] == reply_target)
+          for (i = 2; i < MAX_SESSIONS+2; i++)
           {
-            index = i;
-            break;
+            if (g_handles[i] == reply_target)
+            {
+              index = i;
+              break;
+            }
           }
         }
+        svcCloseHandle(g_handles[index]);
+        g_handles[index] = g_handles[g_active_handles-1];
+        g_active_handles--;
+        reply_target = 0;
       }
-      svcCloseHandle(g_handles[index]);
-      g_handles[index] = g_handles[g_active_handles-1];
-      g_active_handles--;
+      else 
+      {
+        svcBreak(USERBREAK_ASSERT);
+      }
     }
-    else if (R_FAILED(ret))
+    else
     {
-      svcBreak(USERBREAK_ASSERT);
-    }
-
-    // process responses
-    reply_target = 0;
-    switch (index)
-    {
-      case 0: // notification
+      // process responses
+      reply_target = 0;
+      switch (index)
       {
-        if (R_FAILED(should_terminate(&term_request)))
+        case 0: // notification
         {
-          svcBreak(USERBREAK_ASSERT);
+          if (R_FAILED(should_terminate(&term_request)))
+          {
+            svcBreak(USERBREAK_ASSERT);
+          }
+          break;
         }
-        break;
-      }
-      case 1: // new session
-      {
-        if (R_FAILED(svcAcceptSession(&handle, *srv_handle)))
+        case 1: // new session
         {
-          svcBreak(USERBREAK_ASSERT);
+          if (R_FAILED(svcAcceptSession(&handle, *srv_handle)))
+          {
+            svcBreak(USERBREAK_ASSERT);
+          }
+          if (g_active_handles < MAX_SESSIONS+2)
+          {
+            g_handles[g_active_handles] = handle;
+            g_active_handles++;
+          }
+          else
+          {
+            svcCloseHandle(handle);
+          }
+          break;
         }
-        if (g_active_handles < MAX_SESSIONS+2)
+        default: // session
         {
-          g_handles[g_active_handles] = handle;
-          g_active_handles++;
+          handle_commands();
+          reply_target = g_handles[index];
+          break;
         }
-        else
-        {
-          svcCloseHandle(handle);
-        }
-        break;
-      }
-      default: // session
-      {
-        handle_commands();
-        reply_target = g_handles[index];
-        break;
       }
     }
   } while (!term_request || g_active_handles != 2);
