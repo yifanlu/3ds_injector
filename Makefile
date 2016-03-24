@@ -118,7 +118,7 @@ DEPENDS	:=	$(OFILES:.o=.d)
 # main targets
 #---------------------------------------------------------------------------------
 $(OUTPUT).ncch	: $(OUTPUT).elf
-	$(MAKEROM) -f ncch -rsf ../loader.rsf -o $@ -elf $<
+	$(MAKEROM) -f ncch -rsf ../loader.rsf -nocodepadding -o $@ -elf $<
 
 $(OUTPUT).elf	:	$(OFILES)
 
