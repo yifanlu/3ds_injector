@@ -16,9 +16,9 @@ Result fsldrInit(void)
   ret = srvSysGetServiceHandle(&fsldrHandle, "fs:LDR");
   if (R_SUCCEEDED(ret))
   {
-    ret = FSLDR_InitializeWithSdkVersion(fsldrHandle, SDK_VERSION);
-    if (R_SUCCEEDED(ret)) ret = FSLDR_SetPriority(0);
-    if (R_FAILED(ret)) svcCloseHandle(fsldrHandle);
+    FSLDR_InitializeWithSdkVersion(fsldrHandle, SDK_VERSION);
+    ret = FSLDR_SetPriority(0);
+    if (R_FAILED(ret)) svcBreak(USERBREAK_ASSERT);
   }
 
   if (R_FAILED(ret)) AtomicDecrement(&fsldrRefCount);
