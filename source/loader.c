@@ -106,7 +106,7 @@ static Result allocate_shared_mem(prog_addrs_t *shared, prog_addrs_t *vaddr, int
   return svcControlMemory(&dummy, shared->text_addr, 0, shared->total_size << 12, (flags & 0xF00) | MEMOP_ALLOC, MEMPERM_READ | MEMPERM_WRITE);
 }
 
-static Result load_code(prog_addrs_t *shared, u64 prog_handle, int is_compressed)
+static Result load_code(u64 progid, prog_addrs_t *shared, u64 prog_handle, int is_compressed)
 {
   IFile file;
   FS_Archive archive;
@@ -156,6 +156,9 @@ static Result load_code(prog_addrs_t *shared, u64 prog_handle, int is_compressed
     lzss_decompress((u8 *)shared->text_addr + size);
   }
 
+  // patch
+  patch_code(progid, shared->text_addr, shared->total_size);
+
   return 0;
 }
 
@@ -195,6 +198,7 @@ static Result loader_LoadProcess(Handle *process, u64 prog_handle)
   Handle codeset;
   CodeSetInfo codesetinfo;
   u32 data_mem_size;
+  u64 progid;
 
   // make sure the cached info corrosponds to the current prog_handle
   if (g_cached_prog_handle != prog_handle)
@@ -238,10 +242,11 @@ static Result loader_LoadProcess(Handle *process, u64 prog_handle)
   }
 
   // load code
-  if ((res = load_code(&shared_addr, prog_handle, g_exheader.codesetinfo.flags.flag & 1)) >= 0)
+  progid = g_exheader.arm11systemlocalcaps.programid;
+  if ((res = load_code(progid, &shared_addr, prog_handle, g_exheader.codesetinfo.flags.flag & 1)) >= 0)
   {
     memcpy(&codesetinfo.name, g_exheader.codesetinfo.name, 8);
-    memcpy(&codesetinfo.program_id, g_exheader.arm11systemlocalcaps.programid, 8);
+    codesetinfo.program_id = progid;
     codesetinfo.text_addr = vaddr.text_addr;
     codesetinfo.text_size = vaddr.text_size;
     codesetinfo.text_size_total = vaddr.text_size;

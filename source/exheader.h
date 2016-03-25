@@ -52,7 +52,7 @@ typedef struct
 
 typedef struct
 {
-	u8 programid[8];
+	u64 programid;
 	u8 flags[8];
 	u16 resourcelimitdescriptor[0x10];
 	exheader_storageinfo storageinfo;
