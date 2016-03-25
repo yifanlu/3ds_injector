@@ -104,7 +104,10 @@ AccessControlInfo:
     WaitSynchronizationN: 37
   InterruptNumbers:
   ServiceAccessControl:
-   - fs:LDR
+    - fs:LDR
+  FileSystemAccess:
+    - DirectSdmc
+    - DirectSdmcWrite
 
 SystemControlInfo:
   SaveDataSize: 0KB # It doesn't use any save data.
