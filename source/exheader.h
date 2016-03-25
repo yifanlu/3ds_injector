@@ -25,7 +25,7 @@ typedef struct
 	exheader_codesegmentinfo ro;
 	u8 reserved[4];
 	exheader_codesegmentinfo data;
-	u8 bsssize[4];
+	u32 bsssize;
 } PACKED exheader_codesetinfo;
 
 typedef struct
