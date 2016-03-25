@@ -2,7 +2,7 @@
 #include "fsldr.h"
 #include "srvsys.h"
 
-#define SDK_VERSION 0xA0000C8
+#define SDK_VERSION 0x70200C8
 
 static Handle fsldrHandle;
 static int fsldrRefCount;
