@@ -443,8 +443,8 @@ static Result should_terminate(int *term_request)
 void __appInit()
 {
   srvSysInit();
-  fsldrInit();
   fsregInit();
+  fsldrInit();
   pxipmInit();
 }
 
@@ -452,8 +452,8 @@ void __appInit()
 void __appExit()
 {
   pxipmExit();
-  fsregExit();
   fsldrExit();
+  fsregExit();
   srvSysExit();
 }
 

@@ -83,3 +83,34 @@ Result FSREG_UnloadProgram(u64 prog_handle)
 
   return cmdbuf[1];
 }
+
+Result FSREG_Unregister(u32 pid)
+{
+  u32 *cmdbuf = getThreadCommandBuffer();
+
+  cmdbuf[0] = IPC_MakeHeader(0x402,1,0); // 0x4020040
+  cmdbuf[1] = pid;
+
+  Result ret = 0;
+  if(R_FAILED(ret = svcSendSyncRequest(fsregHandle))) return ret;
+
+  return cmdbuf[1];
+}
+
+Result FSREG_Register(u32 pid, u64 prog_handle, FS_ProgramInfo *info, void *storageinfo)
+{
+  u32 *cmdbuf = getThreadCommandBuffer();
+
+  cmdbuf[0] = IPC_MakeHeader(0x401,0xf,0); // 0x40103C0
+  cmdbuf[1] = pid;
+  *(u64 *)&cmdbuf[2] = prog_handle;
+  memcpy(&cmdbuf[4], &info->programId, sizeof(u64));
+  *(u8 *)&cmdbuf[6] = info->mediaType;
+  memcpy(((u8 *)&cmdbuf[6])+1, &info->padding, 7);
+  memcpy((u8 *)&cmdbuf[8], storageinfo, 32);
+
+  Result ret = 0;
+  if(R_FAILED(ret = svcSendSyncRequest(fsregHandle))) return ret;
+
+  return cmdbuf[1];
+}

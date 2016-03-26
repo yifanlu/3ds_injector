@@ -1,11 +1,31 @@
 #include <3ds.h>
 #include "fsldr.h"
+#include "fsreg.h"
 #include "srvsys.h"
 
 #define SDK_VERSION 0x70200C8
 
 static Handle fsldrHandle;
 static int fsldrRefCount;
+
+// MAKE SURE fsreg has been init before calling this
+static Result fsldrPatchPermissions(void)
+{
+  u32 pid;
+  Result res;
+  FS_ProgramInfo info;
+  char storage[32] = {0};
+
+  storage[24] = 0x80; // SDMC access flag
+  info.programId = 0x0004013000001302LL; // loader PID
+  info.mediaType = MEDIATYPE_NAND;
+  res = svcGetProcessId(&pid, 0xFFFF8001);
+  if (R_SUCCEEDED(res))
+  {
+    res = FSREG_Register(pid, 0, &info, storage);
+  }
+  return res;
+}
 
 Result fsldrInit(void)
 {
@@ -16,12 +36,16 @@ Result fsldrInit(void)
   ret = srvSysGetServiceHandle(&fsldrHandle, "fs:LDR");
   if (R_SUCCEEDED(ret))
   {
-    FSLDR_InitializeWithSdkVersion(fsldrHandle, SDK_VERSION);
+    fsldrPatchPermissions();
+    ret = FSLDR_InitializeWithSdkVersion(fsldrHandle, SDK_VERSION);
     ret = FSLDR_SetPriority(0);
     if (R_FAILED(ret)) svcBreak(USERBREAK_ASSERT);
   }
+  else
+  {
+    AtomicDecrement(&fsldrRefCount);
+  }
 
-  if (R_FAILED(ret)) AtomicDecrement(&fsldrRefCount);
   return ret;
 }
 
