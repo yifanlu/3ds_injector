@@ -22,7 +22,7 @@ that you're using an older version.
 Currently, there is no support for FIRM building, so you need to do some steps 
 manually. First, you have to add padding to make sure the NCCH is of the right 
 size to drop in as a replacement. A hacky way is 
-[http://pastebin.com/nyKXLnNh](this patch) which adds junk data. Play around 
+[this patch](http://pastebin.com/nyKXLnNh) which adds junk data. Play around 
 with the size value to get the NCCH to be the exact same size as the one 
 found in your decrypted FIRM dump.
 
