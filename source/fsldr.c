@@ -22,7 +22,7 @@ static Result fsldrPatchPermissions(void)
   res = svcGetProcessId(&pid, 0xFFFF8001);
   if (R_SUCCEEDED(res))
   {
-    res = FSREG_Register(pid, 0, &info, storage);
+    res = FSREG_Register(pid, 0xFFFF000000000000LL, &info, storage);
   }
   return res;
 }
