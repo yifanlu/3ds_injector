@@ -14,15 +14,15 @@ static Result fsldrPatchPermissions(void)
   u32 pid;
   Result res;
   FS_ProgramInfo info;
-  char storage[32] = {0};
+  u32 storage[8] = {0};
 
-  storage[24] = 0x80; // SDMC access flag
+  storage[6] = 0x680; // SDMC access and NAND access flag
   info.programId = 0x0004013000001302LL; // loader PID
   info.mediaType = MEDIATYPE_NAND;
   res = svcGetProcessId(&pid, 0xFFFF8001);
   if (R_SUCCEEDED(res))
   {
-    res = FSREG_Register(pid, 0xFFFF000000000000LL, &info, storage);
+    res = FSREG_Register(pid, 0xFFFF000000000000LL, &info, (u8 *)storage);
   }
   return res;
 }

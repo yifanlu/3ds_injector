@@ -107,6 +107,7 @@ AccessControlInfo:
     - fs:LDR
   FileSystemAccess:
     - DirectSdmc
+    - CtrNandRw
 
 SystemControlInfo:
   SaveDataSize: 0KB # It doesn't use any save data.
